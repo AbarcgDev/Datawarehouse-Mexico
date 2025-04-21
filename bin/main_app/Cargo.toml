@@ -1,0 +1,11 @@
+[package]
+name = "main_app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+infrastructure = { path = "../../crates/infrastructure/" }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1.0.98"
+serde_json = "1.0"
+dotenv = "0.15.0"
