@@ -12,4 +12,4 @@
 #dotenv = "0.15"
 [workspace]
 members = ["crates/*", "bin/*"]
-eworkspace.resolver = 3
+workspace.resolver = 2
