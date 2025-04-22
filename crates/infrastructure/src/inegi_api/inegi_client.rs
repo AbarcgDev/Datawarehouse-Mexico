@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::{api_response::ApiResponse, mgee_responses::MgeeResponse};
+use crate::inegi_api::{api_response::ApiResponse, mgee_responses::MgeeResponse};
 use anyhow::{Context, Error};
 use reqwest::Client;
 use tokio::time::sleep;

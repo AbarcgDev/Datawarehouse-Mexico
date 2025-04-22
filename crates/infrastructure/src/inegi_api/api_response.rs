@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::mgee_responses::{MgeeServiceData, MgeeServiceMetadata};
+use crate::inegi_api::mgee_responses::{MgeeServiceData, MgeeServiceMetadata};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]

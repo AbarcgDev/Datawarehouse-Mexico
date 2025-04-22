@@ -1,0 +1,78 @@
+use anyhow::{Context, Result};
+use minio::s3::{
+    client::{Client, ClientBuilder},
+    creds::{Credentials, Provider, StaticProvider},
+    http::BaseUrl,
+};
+
+pub struct MinioClient {
+    client: Client,
+}
+
+impl MinioClient {
+    pub fn new(minio_user: &str, minio_secret: &str, endpoint_url: &str) -> Result<MinioClient> {
+        let base_url = endpoint_url
+            .parse::<BaseUrl>()
+            .with_context(|| "Failed to parse MinIO URL")?;
+        let provider = StaticProvider::new(minio_user, minio_secret, None);
+        let client = ClientBuilder::new(base_url)
+            .provider(Some(Box::new(provider)))
+            .build()
+            .with_context(|| "Failed to create MinIO Client")?;
+
+        Ok(Self { client })
+    }
+
+    pub async fn upload_to_minio(
+        &self,
+        bucket: &str,
+        key: &str,
+        content: &[u8],
+    ) -> anyhow::Result<()> {
+        self.client
+            .put_object()
+            .bucket(bucket)
+            .key(key)
+            .body(ByteStream::from(content.to_owned()))
+            .send()
+            .await
+            .with_context(|| format!("failed to put data with key {key} on bucket {bucket}"))?;
+
+        Ok(())
+    }
+
+    pub async fn create_bucket(&self, bucket_name: &str) -> anyhow::Result<()> {
+        tracing::info!("Trying to create bucket with name {}", bucket_name);
+
+        // Verificar si el bucket ya existe
+        match self.client.head_bucket().bucket(bucket_name).send().await {
+            Ok(_) => {
+                tracing::info!("Bucket with name {} already exists", bucket_name);
+                Ok(())
+            }
+            Err(SdkError::ServiceError(err)) if err.err().is_not_found() => {
+                tracing::info!("Bucket {} does not exist, creating bucket", bucket_name);
+
+                let constraint = BucketLocationConstraint::UsWest1; // Considera cambiar a la región que usas.
+                let cfg = CreateBucketConfiguration::builder()
+                    .location_constraint(constraint)
+                    .build();
+
+                // Crear el bucket
+                self.client
+                    .create_bucket()
+                    .create_bucket_configuration(cfg)
+                    .bucket(bucket_name)
+                    .send()
+                    .await
+                    .with_context(|| {
+                        format!("Failed to create bucket with name: {}", bucket_name)
+                    })?;
+
+                Ok(())
+            }
+            // Manejo de otros errores
+            Err(err) => Err(err.into()),
+        }
+    }
+}
